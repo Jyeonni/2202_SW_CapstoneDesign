@@ -1,0 +1,123 @@
+from pickle import TRUE
+from bs4 import BeautifulSoup
+import sqlite3
+import requests
+import lxml
+
+def title(id,k):
+    link1 = []
+    link2 = []
+    title1 = []
+    title2 = []
+    ss = 1 
+    print(k)
+    for i in range(3):
+        ii = 0
+        url = "https://www.hallym.ac.kr/hallym_univ/sub05/cP3/sCP1?nttId=0&bbsTyCode=BBST00&bbsAttrbCode=BBSA03&authFlag=N&pageIndex="+str(i+1)+"&category=&searchType=0&searchWrd="
+        res = requests.get(url)
+        soup = BeautifulSoup(res.text, "lxml")
+        w = soup.find("ul",attrs={"class":"tbl-body"}).find_all("li")
+        for j in range(len(k)):
+            print("\n------\'{}\'------검색\n".format(k[ii]))
+            for index, news in enumerate(w):
+                tt = news.find("a").get_text().strip()
+                lk=news.find("a")["href"]
+                res2 = requests.get(lk)
+                soup2 = BeautifulSoup(res2.text, "lxml")
+                w1 = soup2.select_one('.boardview-con').get_text()
+                if((tt.find(k[ii])!=-1) or (w1.find(k[ii])!=-1)):
+                    title1.append(tt)
+                    link1.append(lk)  
+                    print(str(i+1)+"페이지")
+                    print("{}".format(tt))
+                    print("  (링크 : {})".format(lk))
+                    ss = 0
+            ii = ii + 1                
+    if(ss==1):
+        print("검색결과 없음.")
+    
+    for i1 in title1:
+        if(i1 not in title2):
+            title2.append(i1)
+    for i2 in link1:
+        if(i2 not in link2):
+            link2.append(i2)
+    
+    con1 = sqlite3.connect('searchresult.db')
+    c1 = con1.cursor()
+    c1.execute("create table if not exists searchresult(id text, title text, link text)")
+    iii = 0
+    while TRUE:
+        lg = len(title2)
+        if(lg < iii):
+            break
+        else:
+            c1.execute("insert into searchresult values (?,?,?)",(id,title2[iii],link2[iii]))
+            con1.commit()
+            iii+=1
+    c1.close()
+    con1.close()
+
+def select():
+    b1 = int(input("학번을 입력하세요--->"))
+    c.execute("SELECT keyword from userdata where id = (?)", (b1,))
+    b2 = c.fetchall()
+    b2 = list(item[0] for item in b2)
+    l = "".join(map(str,b2))
+    l2 = l.split()
+    con.commit()
+    c.close()
+    con.close()
+    title(b1,l2)
+def insert():
+    d1 = input("학번을 입력하세요--->")
+    c.execute("SELECT keyword from userdata where id = (?)", (d1,))
+    d2 = c.fetchall()
+    d2 = list(item[0] for item in d2)
+    m = "".join(map(str,d2))
+    m2 = m.split()
+    while True:
+        e1 = input("키워드 입력(종료 = !!)--->")
+        if(e1 == '!!'):
+            break
+        else:
+            m2.append(e1)
+            m3 = " ".join(map(str,m2))
+            c.execute("update userdata set keyword = (?) where id = (?)",(m3,d1,))
+            con.commit()
+        print(m3)
+    c.close()
+    con.close()
+def delete():
+    d1 = input("학번을 입력하세요--->")
+    c.execute("SELECT keyword from userdata where id = (?)", (d1,))
+    d2 = c.fetchall()
+    d2 = list(item[0] for item in d2)
+    m = "".join(map(str,d2))
+    m2 = m.split()
+    while True:
+        e1 = input("키워드 입력(종료 = !!)--->")
+        if(e1 == '!!'):
+            break
+        else:
+            if any(s for s in m2 if e1 in s):
+                m2.remove(e1)
+                m3 = " ".join(map(str,m2))
+                c.execute("update userdata set keyword = (?) where id = (?)",(m3,d1,))
+                con.commit()
+            else:
+                print("키워드 없음")
+        print(m3)
+    c.close()
+    con.close()
+con = sqlite3.connect('userdata.db')
+c = con.cursor()
+c.execute("create table if not exists userdata(id integer, keyword text)")
+n1 = input("1: 키워드 검색   2: 키워드 입력 3:키워드 삭제--->")
+
+if(n1 == '1'):
+    select()
+elif(n1 == '2'):
+    insert()
+elif(n1 == '3'):
+    delete()
